@@ -148,7 +148,7 @@ class GPTNeoXAttention(nn.Module):
         max_positions = config.max_position_embeddings
         self.register_buffer(
             "bias",
-            torch.tril(torch.ones((max_positions, max_positions), dtype=torch.uint8)).view(
+            torch.tril(torch.ones((max_positions, max_positions), dtype=torch.bool)).view(
                 1, 1, max_positions, max_positions
             ),
         )
@@ -469,7 +469,7 @@ GPT_NEOX_INPUTS_DOCSTRING = r"""
             [What are attention masks?](../glossary#attention-mask)
         position_ids (`torch.LongTensor` of shape `({0})`, *optional*):
             Indices of positions of each input sequence tokens in the position embeddings. Selected in the range `[0,
-            config.max_position_embeddings - 1]`.
+            config.n_positions - 1]`.
 
             [What are position IDs?](../glossary#position-ids)
         head_mask (`torch.FloatTensor` of shape `(num_heads,)` or `(num_layers, num_heads)`, *optional*):
@@ -579,7 +579,17 @@ class GPTNeoXModel(GPTNeoXPreTrainedModel):
         batch_size, seq_length = input_shape
 
         if past_key_values is None:
+            past_length = 0
             past_key_values = tuple([None] * self.config.num_hidden_layers)
+        else:
+            past_length = past_key_values[0][0].size(-2)
+
+        if position_ids is None:
+            device = input_ids.device if input_ids is not None else inputs_embeds.device
+            position_ids = torch.arange(past_length, seq_length + past_length, dtype=torch.long, device=device)
+            position_ids = position_ids.unsqueeze(0).view(-1, seq_length)
+        else:
+            position_ids = position_ids.view(-1, seq_length).long()
 
         if inputs_embeds is None:
             inputs_embeds = self.embed_in(input_ids)
@@ -625,11 +635,6 @@ class GPTNeoXModel(GPTNeoXPreTrainedModel):
                 all_hidden_states = all_hidden_states + (hidden_states,)
 
             if self.gradient_checkpointing and self.training:
-                if use_cache:
-                    logger.warning(
-                        "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`..."
-                    )
-                    use_cache = False
 
                 def create_custom_forward(module):
                     def custom_forward(*inputs):
@@ -711,8 +716,8 @@ class GPTNeoXForCausalLM(GPTNeoXPreTrainedModel):
     def forward(
         self,
         input_ids: Optional[torch.LongTensor] = None,
-        position_ids=None,
         attention_mask: Optional[torch.FloatTensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
         head_mask: Optional[torch.FloatTensor] = None,
         past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
@@ -765,8 +770,8 @@ class GPTNeoXForCausalLM(GPTNeoXPreTrainedModel):
 
         outputs = self.gpt_neox(
             input_ids,
-            position_ids=position_ids,
             attention_mask=attention_mask,
+            position_ids=position_ids,
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
             past_key_values=past_key_values,
@@ -799,20 +804,29 @@ class GPTNeoXForCausalLM(GPTNeoXPreTrainedModel):
             attentions=outputs.attentions,
         )
 
-    def prepare_inputs_for_generation(self, input_ids, past_key_values=None, attention_mask=None, **model_kwargs):
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=None, attention_mask=None, **kwargs):
         input_shape = input_ids.shape
-
-        # if model is used as a decoder in encoder-decoder model, the decoder attention mask is created on the fly
-        if attention_mask is None:
-            attention_mask = input_ids.new_ones(input_shape)
 
         # cut decoder_input_ids if past is used
         if past_key_values and past_key_values[0] is not None:
             input_ids = input_ids[:, -1:]
 
+        position_ids = kwargs.get("position_ids", None)
+        if attention_mask is not None and position_ids is None:
+            # create position_ids on the fly for batch generation
+            position_ids = attention_mask.long().cumsum(-1) - 1
+            position_ids.masked_fill_(attention_mask == 0, 1)
+            if past_key_values:
+                position_ids = position_ids[:, -1].unsqueeze(-1)
+
+        # if model is used as a decoder in encoder-decoder model, the decoder attention mask is created on the fly
+        if attention_mask is None:
+            attention_mask = input_ids.new_ones(input_shape)
+
         return {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
+            "position_ids": position_ids,
             "past_key_values": past_key_values,
         }
 
