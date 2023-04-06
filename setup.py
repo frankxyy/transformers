@@ -38,6 +38,10 @@ To create the package for pypi.
 7. Build both the sources and the wheel. Do not change anything in setup.py between
    creating the wheel and the source distribution (obviously).
 
+   Clean up your build and dist folders (to avoid re-uploading oldies):
+   rm -rf dist
+   rm -rf build
+
    For the wheel, run: "python setup.py bdist_wheel" in the top level directory.
    (this will build a wheel for the python version you use to build it).
 
@@ -46,10 +50,10 @@ To create the package for pypi.
 
 8. Check that everything looks correct by uploading the package to the pypi test server:
 
-   twine upload dist/* -r pypitest
+   twine upload dist/* -r testpypi
    (pypi suggest using twine as other methods upload files via plaintext.)
    You may have to specify the repository url, use the following command then:
-   twine upload dist/* -r pypitest --repository-url=https://test.pypi.org/legacy/
+   twine upload dist/* -r testpypi --repository-url=https://test.pypi.org/legacy/
 
    Check that you can install it in a virtualenv by running:
    pip install -i https://testpypi.python.org/pypi transformers
@@ -57,6 +61,8 @@ To create the package for pypi.
    Check you can run the following commands:
    python -c "from transformers import pipeline; classifier = pipeline('text-classification'); print(classifier('What a nice release'))"
    python -c "from transformers import *"
+
+   If making a patch release, double check the bug you are patching is indeed resolved.
 
 9. Upload the final version to actual pypi:
    twine upload dist/* -r pypi
@@ -70,10 +76,9 @@ To create the package for pypi.
 import os
 import re
 import shutil
-from distutils.core import Command
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import Command, setup
 
 
 BUILD_EXTENSIONS = os.environ.get("BUILD_EXTENSIONS", "False") == "True"
@@ -93,6 +98,7 @@ if stale_egg_info.exists():
         ).format(stale_egg_info)
     )
     shutil.rmtree(stale_egg_info)
+
 
 # IMPORTANT:
 # 1. all dependencies should be listed here with their version requirements if any
@@ -155,7 +161,7 @@ _deps = [
     "rhoknp>=1.1.0",
     "rjieba",
     "rouge-score!=0.0.7,!=0.0.8,!=0.1,!=0.1.1",
-    "ruff>=0.0.241",
+    "ruff>=0.0.241,<=0.0.259",
     "sacrebleu>=1.4.12,<2.0.0",
     "sacremoses",
     "safetensors>=0.2.1",
@@ -298,30 +304,30 @@ extras["video"] = deps_list("decord", "av")
 
 extras["sentencepiece"] = deps_list("sentencepiece", "protobuf")
 extras["testing"] = (
-        deps_list(
-            "pytest",
-            "pytest-xdist",
-            "timeout-decorator",
-            "parameterized",
-            "psutil",
-            "datasets",
-            "dill",
-            "evaluate",
-            "pytest-timeout",
-            "black",
-            "sacrebleu",
-            "rouge-score",
-            "nltk",
-            "GitPython",
-            "hf-doc-builder",
-            "protobuf",  # Can be removed once we can unpin protobuf
-            "sacremoses",
-            "rjieba",
-            "safetensors",
-            "beautifulsoup4",
-        )
-        + extras["retrieval"]
-        + extras["modelcreation"]
+    deps_list(
+        "pytest",
+        "pytest-xdist",
+        "timeout-decorator",
+        "parameterized",
+        "psutil",
+        "datasets",
+        "dill",
+        "evaluate",
+        "pytest-timeout",
+        "black",
+        "sacrebleu",
+        "rouge-score",
+        "nltk",
+        "GitPython",
+        "hf-doc-builder",
+        "protobuf",  # Can be removed once we can unpin protobuf
+        "sacremoses",
+        "rjieba",
+        "safetensors",
+        "beautifulsoup4",
+    )
+    + extras["retrieval"]
+    + extras["modelcreation"]
 )
 
 extras["deepspeed-testing"] = extras["deepspeed"] + extras["testing"] + extras["optuna"] + extras["sentencepiece"]
@@ -369,26 +375,26 @@ extras["dev-torch"] = (
     + extras["onnxruntime"]
 )
 extras["dev-tensorflow"] = (
-        extras["testing"]
-        + extras["tf"]
-        + extras["sentencepiece"]
-        + extras["tokenizers"]
-        + extras["vision"]
-        + extras["quality"]
-        + extras["docs_specific"]
-        + extras["sklearn"]
-        + extras["modelcreation"]
-        + extras["onnx"]
-        + extras["tf-speech"]
+    extras["testing"]
+    + extras["tf"]
+    + extras["sentencepiece"]
+    + extras["tokenizers"]
+    + extras["vision"]
+    + extras["quality"]
+    + extras["docs_specific"]
+    + extras["sklearn"]
+    + extras["modelcreation"]
+    + extras["onnx"]
+    + extras["tf-speech"]
 )
 extras["dev"] = (
-        extras["all"]
-        + extras["testing"]
-        + extras["quality"]
-        + extras["ja"]
-        + extras["docs_specific"]
-        + extras["sklearn"]
-        + extras["modelcreation"]
+    extras["all"]
+    + extras["testing"]
+    + extras["quality"]
+    + extras["ja"]
+    + extras["docs_specific"]
+    + extras["sklearn"]
+    + extras["modelcreation"]
 )
 
 extras["torchhub"] = deps_list(
@@ -459,22 +465,7 @@ if BUILD_EXTENSIONS:
 setup(
     name="transformers",
     version="4.28.0.dev0",  # expected format is one of x.y.z.dev0, or x.y.z.rc1 or x.y.z (no to dashes, yes to dots)
-    author="The Hugging Face team (past and future) with the help of all our contributors (https://github.com/huggingface/transformers/graphs/contributors)",
-    author_email="transformers@huggingface.co",
-    description="State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow",
-    long_description=open("README.md", "r", encoding="utf-8").read(),
-    long_description_content_type="text/markdown",
-    keywords="NLP vision speech deep learning transformer pytorch tensorflow jax BERT GPT-2 Wav2Vec2 ViT",
-    license="Apache 2.0 License",
-    url="https://github.com/huggingface/transformers",
-    package_dir={"": "src"},
-    packages=find_packages("src"),
-    include_package_data=True,
-    package_data={"transformers": ["*.cu", "*.cpp", "*.cuh", "*.h", "*.pyx"]},
-    zip_safe=False,
     extras_require=extras,
-    entry_points={"console_scripts": ["transformers-cli=transformers.commands.transformers_cli:main"]},
-    python_requires=">=3.7.0",
     install_requires=install_requires,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
