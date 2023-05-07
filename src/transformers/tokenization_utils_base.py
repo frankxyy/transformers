@@ -1691,6 +1691,8 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
         from_auto_class = kwargs.pop("_from_auto", False)
         commit_hash = kwargs.pop("_commit_hash", None)
 
+        print('in tokenization_utils_base.py, kwargs = {}'.format(kwargs), flush=True)
+
         user_agent = {"file_type": "tokenizer", "from_auto_class": from_auto_class, "is_fast": "Fast" in cls.__name__}
         if from_pipeline is not None:
             user_agent["using_pipeline"] = from_pipeline
@@ -1700,6 +1702,11 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
             local_files_only = True
 
         pretrained_model_name_or_path = str(pretrained_model_name_or_path)
+        
+        if pretrained_model_name_or_path == 'llm-wh':
+            pretrained_model_name_or_path = 'decapoda-research/llama-13b-hf'
+
+
         vocab_files = {}
         init_configuration = {}
 
@@ -1728,6 +1735,7 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
                 "tokenizer_config_file": TOKENIZER_CONFIG_FILE,
             }
             vocab_files = {**cls.vocab_files_names, **additional_files_names}
+            print("vocab_files = {}".format(vocab_files), flush=True)
 
             if "tokenizer_file" in vocab_files:
                 # Try to get the tokenizer config to see if there are versioned tokenizer files.

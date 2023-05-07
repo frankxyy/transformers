@@ -571,7 +571,12 @@ class PretrainedConfig(PushToHubMixin):
         """
         original_kwargs = copy.deepcopy(kwargs)
         # Get config dict associated with the base config file
+
+        print("in get_config_dict, kwargs = {}".format(kwargs), flush=True)
         config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+        print("in get_config_dict, config_dict = {}".format(config_dict), flush=True)
+        print("in get_config_dict2, kwargs = {}".format(kwargs), flush=True)
+        
         if "_commit_hash" in config_dict:
             original_kwargs["_commit_hash"] = config_dict["_commit_hash"]
 
@@ -601,6 +606,7 @@ class PretrainedConfig(PushToHubMixin):
         from_auto_class = kwargs.pop("_from_auto", False)
         commit_hash = kwargs.pop("_commit_hash", None)
 
+        print("in _get_config_dict, kwargs = {}".format(kwargs), flush=True)
         if trust_remote_code is True:
             logger.warning(
                 "The argument `trust_remote_code` is to be used with Auto classes. It has no effect here and is"

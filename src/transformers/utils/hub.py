@@ -365,6 +365,16 @@ def cached_file(
     #         None.
     #     _commit_hash: passed when we are chaining several calls to various files (e.g. when loading a tokenizer or
     #         a pipeline). If files are cached for this commit hash, avoid calls to head and get from the cache.
+    
+    ## debug, added by xyy
+    import traceback
+    aa = traceback.format_stack()
+    # print('stack = {}'.format(aa), flush=True)
+    for line in aa:
+        print(line.strip(), flush=True)
+
+    print("cache_dir = {}".format(cache_dir), flush=True)
+    
     if is_offline_mode() and not local_files_only:
         logger.info("Offline mode: forcing local_files_only=True")
         local_files_only = True
@@ -372,7 +382,13 @@ def cached_file(
         subfolder = ""
 
     path_or_repo_id = str(path_or_repo_id)
+    if path_or_repo_id == 'llm-wh':
+        path_or_repo_id = 'decapoda-research/llama-13b-hf'
+    
     full_filename = os.path.join(subfolder, filename)
+    print("full_filename = {}".format(full_filename), flush=True)
+
+    print("path_or_repo_id = {}".format(path_or_repo_id), flush=True)
     if os.path.isdir(path_or_repo_id):
         resolved_file = os.path.join(os.path.join(path_or_repo_id, subfolder), filename)
         if not os.path.isfile(resolved_file):
@@ -387,14 +403,19 @@ def cached_file(
 
     if cache_dir is None:
         cache_dir = TRANSFORMERS_CACHE
+    print("2, cache_dir = {}".format(cache_dir), flush=True)
+
     if isinstance(cache_dir, Path):
         cache_dir = str(cache_dir)
 
     if _commit_hash is not None and not force_download:
         # If the file is cached under that commit hash, we return it directly.
+        print("_commit_hash = {}".format(_commit_hash), flush=True)
         resolved_file = try_to_load_from_cache(
             path_or_repo_id, full_filename, cache_dir=cache_dir, revision=_commit_hash
         )
+        print("resolved_file = {}".format(resolved_file), flush=True)
+
         if resolved_file is not None:
             if resolved_file is not _CACHED_NO_EXIST:
                 return resolved_file
@@ -405,6 +426,7 @@ def cached_file(
 
     user_agent = http_user_agent(user_agent)
     try:
+        print("before hf_hub_download", flush=True)
         # Load from URL or cache if already cached
         resolved_file = hf_hub_download(
             path_or_repo_id,
