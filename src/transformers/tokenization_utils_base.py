@@ -21,6 +21,7 @@ of output with special method for the Fast tokenizers)
 import copy
 import json
 import os
+import pathlib
 import re
 import warnings
 from collections import OrderedDict, UserDict
@@ -1702,7 +1703,7 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
             local_files_only = True
 
         pretrained_model_name_or_path = str(pretrained_model_name_or_path)
-        
+
         if pretrained_model_name_or_path == 'llm-wh':
             pretrained_model_name_or_path = 'decapoda-research/llama-13b-hf'
 
@@ -1768,6 +1769,10 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
         resolved_vocab_files = {}
         unresolved_files = []
         for file_id, file_path in vocab_files.items():
+            if pretrained_model_name_or_path == 'decapoda-research/llama-13b-hf':
+                if file_path == ADDED_TOKENS_FILE:
+                    continue
+
             if file_path is None:
                 resolved_vocab_files[file_id] = None
             elif single_file_id == file_id:
@@ -1776,23 +1781,34 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
                 elif is_remote_url(file_path):
                     resolved_vocab_files[file_id] = download_url(file_path, proxies=proxies)
             else:
-                resolved_vocab_files[file_id] = cached_file(
-                    pretrained_model_name_or_path,
-                    file_path,
-                    cache_dir=cache_dir,
-                    force_download=force_download,
-                    proxies=proxies,
-                    resume_download=resume_download,
-                    local_files_only=local_files_only,
-                    use_auth_token=use_auth_token,
-                    user_agent=user_agent,
-                    revision=revision,
-                    subfolder=subfolder,
-                    _raise_exceptions_for_missing_entries=False,
-                    _raise_exceptions_for_connection_errors=False,
-                    _commit_hash=commit_hash,
-                )
-                commit_hash = extract_commit_hash(resolved_vocab_files[file_id], commit_hash)
+                if pretrained_model_name_or_path == 'decapoda-research/llama-13b-hf':
+                    if file_path == SPECIAL_TOKENS_MAP_FILE:
+                        resolved_vocab_files[file_id] = str(pathlib.Path('/data/models--llm-wh') / SPECIAL_TOKENS_MAP_FILE)
+                    if file_path == TOKENIZER_CONFIG_FILE:
+                        resolved_vocab_files[file_id] = str(pathlib.Path('/data/models--llm-wh') / TOKENIZER_CONFIG_FILE)
+                    if file_path == 'config.json':
+                        resolved_vocab_files[file_id] = str(pathlib.Path('/data/models--llm-wh') / f"config.json")
+                    if file_path == 'tokenizer.model':
+                        resolved_vocab_files[file_id] = str(pathlib.Path('/data/models--llm-wh') / f"tokenizer.model")
+
+                else:
+                    resolved_vocab_files[file_id] = cached_file(
+                        pretrained_model_name_or_path,
+                        file_path,
+                        cache_dir=cache_dir,
+                        force_download=force_download,
+                        proxies=proxies,
+                        resume_download=resume_download,
+                        local_files_only=local_files_only,
+                        use_auth_token=use_auth_token,
+                        user_agent=user_agent,
+                        revision=revision,
+                        subfolder=subfolder,
+                        _raise_exceptions_for_missing_entries=False,
+                        _raise_exceptions_for_connection_errors=False,
+                        _commit_hash=commit_hash,
+                    )
+                    commit_hash = extract_commit_hash(resolved_vocab_files[file_id], commit_hash)
 
         if len(unresolved_files) > 0:
             logger.info(
