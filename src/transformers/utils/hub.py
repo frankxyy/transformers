@@ -382,8 +382,8 @@ def cached_file(
         subfolder = ""
 
     path_or_repo_id = str(path_or_repo_id)
-    if path_or_repo_id == 'llm-wh':
-        path_or_repo_id = 'decapoda-research/llama-13b-hf'
+    # if path_or_repo_id == 'llm-wh':
+    #     path_or_repo_id = 'decapoda-research/llama-13b-hf'
     
     full_filename = os.path.join(subfolder, filename)
     print("full_filename = {}".format(full_filename), flush=True)

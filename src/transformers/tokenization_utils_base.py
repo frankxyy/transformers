@@ -1680,6 +1680,14 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
         # Otherwise use tokenizer.add_special_tokens({'unk_token': '<unk>'}) instead)
         assert tokenizer.unk_token == "<unk>"
         ```"""
+
+        ## debug, added by xyy
+        import traceback
+        aa = traceback.format_stack()
+        print('about to print stack', flush=True)
+        for line in aa:
+            print(line.strip(), flush=True)
+
         cache_dir = kwargs.pop("cache_dir", None)
         force_download = kwargs.pop("force_download", False)
         resume_download = kwargs.pop("resume_download", False)
@@ -1692,6 +1700,7 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
         from_auto_class = kwargs.pop("_from_auto", False)
         commit_hash = kwargs.pop("_commit_hash", None)
 
+        print("pretrained_model_name_or_path = {}".format(pretrained_model_name_or_path), flush=True)
         print('in tokenization_utils_base.py, kwargs = {}'.format(kwargs), flush=True)
 
         user_agent = {"file_type": "tokenizer", "from_auto_class": from_auto_class, "is_fast": "Fast" in cls.__name__}
@@ -1704,8 +1713,8 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
 
         pretrained_model_name_or_path = str(pretrained_model_name_or_path)
 
-        if pretrained_model_name_or_path == 'llm-wh':
-            pretrained_model_name_or_path = 'decapoda-research/llama-13b-hf'
+        # if pretrained_model_name_or_path == 'llm-wh':
+        #     pretrained_model_name_or_path = 'decapoda-research/llama-13b-hf'
 
 
         vocab_files = {}
@@ -1781,34 +1790,34 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
                 elif is_remote_url(file_path):
                     resolved_vocab_files[file_id] = download_url(file_path, proxies=proxies)
             else:
-                if pretrained_model_name_or_path == 'decapoda-research/llama-13b-hf':
-                    if file_path == SPECIAL_TOKENS_MAP_FILE:
-                        resolved_vocab_files[file_id] = str(pathlib.Path('/data/models--llm-wh') / SPECIAL_TOKENS_MAP_FILE)
-                    if file_path == TOKENIZER_CONFIG_FILE:
-                        resolved_vocab_files[file_id] = str(pathlib.Path('/data/models--llm-wh') / TOKENIZER_CONFIG_FILE)
-                    if file_path == 'config.json':
-                        resolved_vocab_files[file_id] = str(pathlib.Path('/data/models--llm-wh') / f"config.json")
-                    if file_path == 'tokenizer.model':
-                        resolved_vocab_files[file_id] = str(pathlib.Path('/data/models--llm-wh') / f"tokenizer.model")
+                # if pretrained_model_name_or_path == 'decapoda-research/llama-13b-hf':
+                if file_path == SPECIAL_TOKENS_MAP_FILE:
+                    resolved_vocab_files[file_id] = str(pathlib.Path('/data') / pretrained_model_name_or_path / SPECIAL_TOKENS_MAP_FILE)
+                if file_path == TOKENIZER_CONFIG_FILE:
+                    resolved_vocab_files[file_id] = str(pathlib.Path('/data') / pretrained_model_name_or_path / TOKENIZER_CONFIG_FILE)
+                if file_path == 'config.json':
+                    resolved_vocab_files[file_id] = str(pathlib.Path('/data') / pretrained_model_name_or_path / f"config.json")
+                if file_path == 'tokenizer.model':
+                    resolved_vocab_files[file_id] = str(pathlib.Path('/data') / pretrained_model_name_or_path / f"tokenizer.model")
 
-                else:
-                    resolved_vocab_files[file_id] = cached_file(
-                        pretrained_model_name_or_path,
-                        file_path,
-                        cache_dir=cache_dir,
-                        force_download=force_download,
-                        proxies=proxies,
-                        resume_download=resume_download,
-                        local_files_only=local_files_only,
-                        use_auth_token=use_auth_token,
-                        user_agent=user_agent,
-                        revision=revision,
-                        subfolder=subfolder,
-                        _raise_exceptions_for_missing_entries=False,
-                        _raise_exceptions_for_connection_errors=False,
-                        _commit_hash=commit_hash,
-                    )
-                    commit_hash = extract_commit_hash(resolved_vocab_files[file_id], commit_hash)
+                # else:
+                #     resolved_vocab_files[file_id] = cached_file(
+                #         pretrained_model_name_or_path,
+                #         file_path,
+                #         cache_dir=cache_dir,
+                #         force_download=force_download,
+                #         proxies=proxies,
+                #         resume_download=resume_download,
+                #         local_files_only=local_files_only,
+                #         use_auth_token=use_auth_token,
+                #         user_agent=user_agent,
+                #         revision=revision,
+                #         subfolder=subfolder,
+                #         _raise_exceptions_for_missing_entries=False,
+                #         _raise_exceptions_for_connection_errors=False,
+                #         _commit_hash=commit_hash,
+                #     )
+                #     commit_hash = extract_commit_hash(resolved_vocab_files[file_id], commit_hash)
 
         if len(unresolved_files) > 0:
             logger.info(

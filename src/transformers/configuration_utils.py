@@ -632,26 +632,26 @@ class PretrainedConfig(PushToHubMixin):
             configuration_file = kwargs.pop("_configuration_file", CONFIG_NAME)
 
             try:
-                if pretrained_model_name_or_path == 'decapoda-research/llama-13b-hf':
-                    if configuration_file == CONFIG_NAME:
-                        resolved_config_file = str(pathlib.Path('/data/models--llm-wh') / CONFIG_NAME)
-                else:
-                    # Load from local folder or from cache or download from model Hub and cache
-                    resolved_config_file = cached_file(
-                        pretrained_model_name_or_path,
-                        configuration_file,
-                        cache_dir=cache_dir,
-                        force_download=force_download,
-                        proxies=proxies,
-                        resume_download=resume_download,
-                        local_files_only=local_files_only,
-                        use_auth_token=use_auth_token,
-                        user_agent=user_agent,
-                        revision=revision,
-                        subfolder=subfolder,
-                        _commit_hash=commit_hash,
-                    )
-                    commit_hash = extract_commit_hash(resolved_config_file, commit_hash)
+                # if pretrained_model_name_or_path == 'decapoda-research/llama-13b-hf':
+                #     if configuration_file == CONFIG_NAME:
+                resolved_config_file = str(pathlib.Path('/data') / pretrained_model_name_or_path / CONFIG_NAME)
+                # else:
+                #     # Load from local folder or from cache or download from model Hub and cache
+                #     resolved_config_file = cached_file(
+                #         pretrained_model_name_or_path,
+                #         configuration_file,
+                #         cache_dir=cache_dir,
+                #         force_download=force_download,
+                #         proxies=proxies,
+                #         resume_download=resume_download,
+                #         local_files_only=local_files_only,
+                #         use_auth_token=use_auth_token,
+                #         user_agent=user_agent,
+                #         revision=revision,
+                #         subfolder=subfolder,
+                #         _commit_hash=commit_hash,
+                #     )
+                #     commit_hash = extract_commit_hash(resolved_config_file, commit_hash)
             except EnvironmentError:
                 # Raise any environment error raise by `cached_file`. It will have a helpful error message adapted to
                 # the original exception.
